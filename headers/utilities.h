@@ -14,11 +14,11 @@ using std::vector;
 template<typename T, typename N>
 bool isIncludes(const T &range, const N &item);
 
-int putInput();
+double putInput();
 
 template<typename T>
 std::stringstream joinListToStream(const std::vector<T> &list, const char* delim = ", ");
 
-int putNumeric(const std::vector<int> &list = {}, const std::vector<int> &excludedList = {}, const std::string &msg = "");
+double putNumeric(const std::vector<int> &list = {}, const std::vector<int> &excludedList = {}, const std::string &msg = "");
 
 #endif //INC_28_4_1_UTILITIES_H

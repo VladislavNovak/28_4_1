@@ -7,8 +7,8 @@ bool isIncludes(const T &range, const N &item) {
                        [&item](const N &c) { return c == item; });
 }
 
-int putInput() {
-    int input;
+double putInput() {
+    double input;
     while (true) {
         std::cin >> input;
         if (std::cin.fail()) {
@@ -30,7 +30,7 @@ std::stringstream joinListToStream(const std::vector<T> &list, const char* delim
     return ss;
 }
 
-int putNumeric(const std::vector<int> &list, const std::vector<int> &excludedList, const std::string &msg) {
+double putNumeric(const std::vector<int> &list, const std::vector<int> &excludedList, const std::string &msg) {
     bool isRange = (list.size() == 2) && (list[0] < list[1]);
     bool isList = !list.empty() && (list.size() != 2 || ((list.size() == 2) && (list[0] > list[1])));
     bool isExcluded = !excludedList.empty();
@@ -41,7 +41,7 @@ int putNumeric(const std::vector<int> &list, const std::vector<int> &excludedLis
     if (isExcluded) std::cout << " (excluded " << joinListToStream(excludedList).str() << ")";
     std::cout << (msg.length() ? " " + msg + ":" : ":");
 
-    int userInput;
+    double userInput;
 
     while (true) {
         userInput = putInput();
