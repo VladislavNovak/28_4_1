@@ -15,6 +15,7 @@ class Swimmer {
     int id{};
     // Количество метров в секунду. Средняя для пловца > 2 && < 3
     double mPerSec;
+    // Место в зачёте
     int order{};
 public:
     explicit Swimmer(int inId, double inSpeed) { id = inId, mPerSec = inSpeed; }
@@ -41,38 +42,24 @@ void asyncPositionPerSec(vector<Swimmer*> &list, int &counterOrder, int currentS
     asyncLock.unlock();
 }
 
-int main() {
-    const int DISTANCE = 20;
-    const int MAX_COUNT = 6;
-    vector<Swimmer*> swimmers;
-    swimmers.reserve(MAX_COUNT);
-
-    for (int i = 0; i < MAX_COUNT; ++i) {
-        cout << "#" << i << " swimmer" << endl;
-        swimmers.emplace_back(new Swimmer(i, putNumeric({2, 3}, {}, "speed (as meter per sec)")));
-    }
-
-    // Понадобится для вычисления текущей секунда
-    int currentSecond = 0;
-    // Понадобится для вычисления порядка победителей
-    int counterOrder = 0;
-    // Для безопасности ограничим количество секунд которое необходимо для преодоления дистанции
-    while (currentSecond < (DISTANCE / 1.9)) {
-        cout << " --- Second #" << currentSecond << " ---" << endl;
-        asyncPositionPerSec(swimmers, counterOrder, currentSecond, DISTANCE);
-        if (counterOrder >= MAX_COUNT) { break; }
-        ++currentSecond;
-    }
-
-    // Здесь - нужно отсортировать массив swimmers
-
+void asyncSort(vector<Swimmer*> &swimmers) {
     asyncLock.lock();
-    cout << "Winners table:" << endl;
+    std::sort(swimmers.begin(), swimmers.end(),
+              [](Swimmer* &prev, Swimmer* &next) { return prev->getOrder() < next->getOrder(); });
+    asyncLock.unlock();
+}
+
+void asyncPrint(const vector<Swimmer*> &swimmers) {
+    asyncLock.lock();
+    cout << " --- Winners table --- " << endl;
+    cout << "   place:  swimmer id" << endl;
     for (const auto &swimmer : swimmers) {
-        cout << swimmer->getId() << ": " << swimmer->getOrder() << endl;
+        cout << "     " << swimmer->getOrder() << "   :      " << swimmer->getId() << endl;
     }
     asyncLock.unlock();
+}
 
+void asyncDelete(vector<Swimmer*> &swimmers) {
     asyncLock.lock();
     for (auto &swimmer : swimmers) {
         delete swimmer;
@@ -81,6 +68,43 @@ int main() {
 
     swimmers.clear();
     asyncLock.unlock();
+}
+
+int main() {
+    const int DISTANCE = 20;
+    const int MAX_COUNT = 6;
+    vector<Swimmer*> swimmers;
+    swimmers.reserve(MAX_COUNT);
+
+    for (int i = 0; i < MAX_COUNT; ++i) {
+        cout << "Data of #" << i << " swimmer" << endl;
+        swimmers.emplace_back(new Swimmer(i, putNumeric({2, 3}, {}, "speed (as meters per second)")));
+    }
+
+    // Понадобится для вычисления текущей секунда
+    int currentSecond = 0;
+    // Понадобится для вычисления порядка победителей
+    int counterOrder = 0;
+    // Для безопасности ограничим количество секунд которое необходимо для преодоления дистанции
+    while (currentSecond < (DISTANCE / 1.9)) {
+        if (currentSecond == 0) { cout << "  ---- START! ----" << endl; }
+        else { cout << " --- Second #" << currentSecond << " ---" << endl; }
+
+        // Создаем отдельный thread, задерживаем на секунду, расчет текущей позиции в заплыве
+        asyncPositionPerSec(swimmers, counterOrder, currentSecond, DISTANCE);
+
+        if (counterOrder >= MAX_COUNT) { break; }
+        ++currentSecond;
+    }
+
+    // Здесь - нужно отсортировать массив swimmers
+    asyncSort(swimmers);
+
+    // Распечатываем победителей в соответствии с занятым местом
+    asyncPrint(swimmers);
+
+    // Удаляем объекты из кучи
+    asyncDelete(swimmers);
 
     return 0;
 }
