@@ -19,9 +19,10 @@
 </details>
 
 <details open>
-<summary><span style="color:tomato;font-size:12px">INFO</span></summary>
+<summary><span style="color:tomato;font-size:12px">About</span></summary>
 
-[//]: # (<a href="" style="margin-left:16px">REF</a>)
+Скорость пловцов задана между значениями (включая) 2 - 3 метра в секунду, 
+т.к. это медианные значения для опытных пловцов на дальность 100м.
 
 </details>
 </details>

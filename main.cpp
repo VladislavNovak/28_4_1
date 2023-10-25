@@ -4,26 +4,13 @@
 #include <chrono>
 #include <mutex>
 #include "utilities.h"
+#include "Swimmer.h"
 
 using std::cout;
 using std::endl;
 using std::vector;
 
 std::mutex asyncLock;
-
-class Swimmer {
-    int id{};
-    // Количество метров в секунду. Средняя для пловца > 2 && < 3
-    double mPerSec;
-    // Место в зачёте
-    int order{};
-public:
-    explicit Swimmer(int inId, double inSpeed) { id = inId, mPerSec = inSpeed; }
-    void setOrder(int inOrder) { order = inOrder; }
-    [[nodiscard]] int getId() const { return id; }
-    [[nodiscard]] double getSpeed() const { return mPerSec; }
-    [[nodiscard]] int getOrder() const { return order; }
-};
 
 void asyncPositionPerSec(vector<Swimmer*> &list, int &counterOrder, int currentSecond, int distance) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -71,7 +58,7 @@ void asyncDelete(vector<Swimmer*> &swimmers) {
 }
 
 int main() {
-    const int DISTANCE = 20;
+    const double distance = putNumeric({10, 100}, {}, "distance");
     const int MAX_COUNT = 6;
     vector<Swimmer*> swimmers;
     swimmers.reserve(MAX_COUNT);
@@ -86,12 +73,12 @@ int main() {
     // Понадобится для вычисления порядка победителей
     int counterOrder = 0;
     // Для безопасности ограничим количество секунд которое необходимо для преодоления дистанции
-    while (currentSecond < (DISTANCE / 1.9)) {
+    while (currentSecond < (distance / 1.9)) {
         if (currentSecond == 0) { cout << "  ---- START! ----" << endl; }
         else { cout << " --- Second #" << currentSecond << " ---" << endl; }
 
         // Создаем отдельный thread, задерживаем на секунду, расчет текущей позиции в заплыве
-        asyncPositionPerSec(swimmers, counterOrder, currentSecond, DISTANCE);
+        asyncPositionPerSec(swimmers, counterOrder, currentSecond, distance);
 
         if (counterOrder >= MAX_COUNT) { break; }
         ++currentSecond;
