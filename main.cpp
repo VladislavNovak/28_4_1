@@ -12,7 +12,7 @@ using std::vector;
 
 std::mutex asyncLock;
 
-void asyncPositionPerSec(vector<Swimmer*> &list, int &counterOrder, int currentSecond, double distance) {
+void asyncCalcPositions(vector<Swimmer*> &list, int &counterOrder, int currentSecond, double distance) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     asyncLock.lock();
@@ -29,14 +29,14 @@ void asyncPositionPerSec(vector<Swimmer*> &list, int &counterOrder, int currentS
     asyncLock.unlock();
 }
 
-void asyncSort(vector<Swimmer*> &swimmers) {
+void sortObjects(vector<Swimmer*> &swimmers) {
     asyncLock.lock();
     std::sort(swimmers.begin(), swimmers.end(),
               [](Swimmer* &prev, Swimmer* &next) { return prev->getOrder() < next->getOrder(); });
     asyncLock.unlock();
 }
 
-void asyncPrint(const vector<Swimmer*> &swimmers) {
+void printResults(const vector<Swimmer*> &swimmers) {
     asyncLock.lock();
     cout << " --- Winners table --- " << endl;
     cout << "   place:  swimmer id" << endl;
@@ -46,7 +46,7 @@ void asyncPrint(const vector<Swimmer*> &swimmers) {
     asyncLock.unlock();
 }
 
-void asyncDelete(vector<Swimmer*> &swimmers) {
+void clearHeap(vector<Swimmer*> &swimmers) {
     asyncLock.lock();
     for (auto &swimmer : swimmers) {
         delete swimmer;
@@ -57,17 +57,8 @@ void asyncDelete(vector<Swimmer*> &swimmers) {
     asyncLock.unlock();
 }
 
-int main() {
-    const double distance = putNumeric({10, 100}, {}, "distance");
-    const int MAX_COUNT = 6;
-    vector<Swimmer*> swimmers;
-    swimmers.reserve(MAX_COUNT);
-
-    for (int i = 0; i < MAX_COUNT; ++i) {
-        cout << "Data of #" << i << " swimmer" << endl;
-        swimmers.emplace_back(new Swimmer(i, putNumeric({2, 3}, {}, "speed (as meters per second)")));
-    }
-
+void mainSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
+    cout << "LOG! Started new thread #" << &std::this_thread::get_id << endl;
     // Понадобится для вычисления текущей секунды
     int currentSecond = 0;
     // Понадобится для вычисления порядка победителей
@@ -78,20 +69,41 @@ int main() {
         else { cout << " --- Second #" << currentSecond << " ---" << endl; }
 
         // Создаем отдельный thread, задерживаем на секунду, расчет текущей позиции в заплыве
-        asyncPositionPerSec(swimmers, counterOrder, currentSecond, distance);
+        asyncCalcPositions(swimmers, counterOrder, currentSecond, distance);
 
-        if (counterOrder >= MAX_COUNT) { break; }
+        if (counterOrder >= swimmersCount) { break; }
         ++currentSecond;
     }
+    cout << "LOG! Ended thread #" << &std::this_thread::get_id << endl;
+}
+
+int main() {
+    // Дистанция заплыва. Рекомендуемая: 25
+    const double distance = putNumeric({10, 100}, {}, "distance");
+    // Количество участников
+    const int SWIMMERS_COUNT = 6;
+
+    vector<Swimmer*> swimmers;
+    swimmers.reserve(SWIMMERS_COUNT);
+
+    for (int i = 0; i < SWIMMERS_COUNT; ++i) {
+        cout << "Data of #" << i << " swimmer" << endl;
+        swimmers.emplace_back(new Swimmer(i, putNumeric({2, 3}, {}, "speed (as meters per second)")));
+    }
+
+    // Создаём новый thread
+    // В цикле отсчитываются секунды по истечению которых идёт по преодоленной дистанции
+    std::thread threadCall(mainSwim, swimmers, distance, SWIMMERS_COUNT);
+    if (threadCall.joinable()) { threadCall.join(); }
 
     // Здесь - сортируем (на месте) массив swimmers по полю order
-    asyncSort(swimmers);
+    sortObjects(swimmers);
 
     // Распечатываем победителей в соответствии с занятым местом
-    asyncPrint(swimmers);
+    printResults(swimmers);
 
     // Удаляем объекты из кучи
-    asyncDelete(swimmers);
+    clearHeap(swimmers);
 
     return 0;
 }
