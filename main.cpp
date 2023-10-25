@@ -12,7 +12,7 @@ using std::vector;
 
 std::mutex asyncLock;
 
-void asyncPositionPerSec(vector<Swimmer*> &list, int &counterOrder, int currentSecond, int distance) {
+void asyncPositionPerSec(vector<Swimmer*> &list, int &counterOrder, int currentSecond, double distance) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     asyncLock.lock();
@@ -68,11 +68,11 @@ int main() {
         swimmers.emplace_back(new Swimmer(i, putNumeric({2, 3}, {}, "speed (as meters per second)")));
     }
 
-    // Понадобится для вычисления текущей секунда
+    // Понадобится для вычисления текущей секунды
     int currentSecond = 0;
     // Понадобится для вычисления порядка победителей
     int counterOrder = 0;
-    // Для безопасности ограничим количество секунд которое необходимо для преодоления дистанции
+    // Можно просто true, но для безопасности ограничим кол. секунд которое необходимо для преодоления дистанции
     while (currentSecond < (distance / 1.9)) {
         if (currentSecond == 0) { cout << "  ---- START! ----" << endl; }
         else { cout << " --- Second #" << currentSecond << " ---" << endl; }
@@ -84,7 +84,7 @@ int main() {
         ++currentSecond;
     }
 
-    // Здесь - нужно отсортировать массив swimmers
+    // Здесь - сортируем (на месте) массив swimmers по полю order
     asyncSort(swimmers);
 
     // Распечатываем победителей в соответствии с занятым местом
