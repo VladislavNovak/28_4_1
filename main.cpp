@@ -12,36 +12,20 @@ using std::vector;
 
 std::mutex asyncLock;
 
-void asyncCalcPositions(vector<Swimmer*> &list, int &counterOrder, int currentSecond, double distance) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    asyncLock.lock();
-    for (auto* &swimmer : list) {
-        if (swimmer->getOrder() > 0) { continue; }
-
-        double position = swimmer->getSpeed() * currentSecond;
-        if (currentSecond) { cout << "Swimmer #" << swimmer->getId() << " has overcome " << position << endl; }
-        if (position >= distance) {
-            swimmer->setOrder(++counterOrder);
-            cout << " - and finished with order #" << swimmer->getOrder() << endl;
-        }
-    }
-    asyncLock.unlock();
-}
-
-void sortObjects(vector<Swimmer*> &swimmers) {
+void sortSwimmers(vector<Swimmer*> &swimmers) {
     asyncLock.lock();
     std::sort(swimmers.begin(), swimmers.end(),
-              [](Swimmer* &prev, Swimmer* &next) { return prev->getOrder() < next->getOrder(); });
+              [](Swimmer* &prev, Swimmer* &next) { return prev->getTimeSpent() < next->getTimeSpent(); });
     asyncLock.unlock();
 }
 
 void printResults(const vector<Swimmer*> &swimmers) {
     asyncLock.lock();
     cout << " --- Winners table --- " << endl;
-    cout << "   place:  swimmer id" << endl;
+    cout << "   time spent  :  id" << endl;
+
     for (const auto &swimmer : swimmers) {
-        cout << "     " << swimmer->getOrder() << "   :      " << swimmer->getId() << endl;
+        cout << "    " << swimmer->getTimeSpent() << "   :    " << swimmer->getId() << endl;
     }
     asyncLock.unlock();
 }
@@ -57,24 +41,48 @@ void clearHeap(vector<Swimmer*> &swimmers) {
     asyncLock.unlock();
 }
 
-void mainSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
-    cout << "LOG! Started new thread #" << &std::this_thread::get_id << endl;
+void doSwimLine(Swimmer* swimmer, double distance) {
+    cout << "LOG! Started thread #" << std::this_thread::get_id() << "\n";
     // Понадобится для вычисления текущей секунды
     int currentSecond = 0;
-    // Понадобится для вычисления порядка победителей
-    int counterOrder = 0;
+
     // Можно просто true, но для безопасности ограничим кол. секунд которое необходимо для преодоления дистанции
     while (currentSecond < (distance / 1.9)) {
-        if (currentSecond == 0) { cout << "  ---- START! ----" << endl; }
-        else { cout << " --- Second #" << currentSecond << " ---" << endl; }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        // Создаем отдельный thread, задерживаем на секунду, расчет текущей позиции в заплыве
-        asyncCalcPositions(swimmers, counterOrder, currentSecond, distance);
+        // Обратим внимание: внутри mutex не выйти из цикла по break;
+        asyncLock.lock();
+        double position = swimmer->getSpeed() * currentSecond;
 
-        if (counterOrder >= swimmersCount) { break; }
+        if (position >= distance) {
+            // Установим затраченное спортсменом время на преодоление дистанции
+            swimmer->setTimeSpent(distance);
+            cout << "(" << currentSecond << ") Swimmer #" << swimmer->getId() << " reaches the finish line.\n";
+        } else if (currentSecond) {
+            cout << "(" << currentSecond << ") Swimmer #" << swimmer->getId() << " has overcome " << position << ".\n";
+        }
+        asyncLock.unlock();
+
+        if (swimmer->hasFinish() > 0) { return; }
+
         ++currentSecond;
     }
-    cout << "LOG! Ended thread #" << &std::this_thread::get_id << endl;
+}
+
+void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
+    cout << "LOG! Started main thread #" << std::this_thread::get_id() << "\n";
+
+    // Создаем шесть параллельных потоков:
+    vector<std::thread> threads(swimmersCount);
+
+    for (int i = 0; i < swimmersCount; ++i) {
+        // Альтернативные способы создания массива потоков:
+        threads.emplace_back(doSwimLine, swimmers[i], distance);
+        // threads.emplace_back([&swimmers, distance, i]() { swimmingLane(swimmers[i], distance); });
+    }
+
+    // Потоки начинают выполняться параллельно
+    for (auto &thread : threads) { if (thread.joinable()) { thread.join(); } }
 }
 
 int main() {
@@ -92,12 +100,11 @@ int main() {
     }
 
     // Создаём новый thread
-    // В цикле отсчитываются секунды по истечению которых идёт по преодоленной дистанции
-    std::thread threadCall(mainSwim, swimmers, distance, SWIMMERS_COUNT);
-    if (threadCall.joinable()) { threadCall.join(); }
+    std::thread threadMain(doSwim, swimmers, distance, SWIMMERS_COUNT);
+    if (threadMain.joinable()) { threadMain.join(); }
 
-    // Здесь - сортируем (на месте) массив swimmers по полю order
-    sortObjects(swimmers);
+    // Здесь - сортируем (на месте) массив swimmers
+    sortSwimmers(swimmers);
 
     // Распечатываем победителей в соответствии с занятым местом
     printResults(swimmers);

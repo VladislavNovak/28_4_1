@@ -5,18 +5,21 @@ class Swimmer {
     int id{};
     // Количество метров в секунду. Средняя для пловца > 2 && < 3
     double mPerSec;
-    // Место в зачёте
-    int order{};
+    // Количество времени, затраченное на заплыв. Результат вычисления дистанции / mPerSec
+    double timeSpent{};
 public:
     explicit Swimmer(int inId, double inSpeed);
 
-    void setOrder(int inOrder);
+    void setTimeSpent(double distance);
 
     [[nodiscard]] int getId() const;
 
     [[nodiscard]] double getSpeed() const;
 
-    [[nodiscard]] int getOrder() const;
+    [[nodiscard]] double getTimeSpent() const;
+
+    // true, если пловец финишировал
+    [[nodiscard]] bool hasFinish() const;
 };
 
 #endif //INC_28_4_1_SWIMMER_H
