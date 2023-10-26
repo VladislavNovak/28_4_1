@@ -19,12 +19,36 @@
 </details>
 
 <details open>
-<summary><span style="color:tomato;font-size:12px">About</span></summary>
+<summary><span style="color:tomato;font-size:12px">Пояснения</span></summary>
 
-Скорость пловцов задана между значениями (включая) 2 - 3 метра в секунду, 
-т.к. это медианные значения для опытных пловцов на дальность 100м.
+Скорость пловцов заносится в тип double и находится в интервале между 2 - 3 метрами в секунду. 
+Это медианные значения для опытных пловцов на дальность 100м.
 
-Для процесса заплыва создаётся отдельный поток, в который добавляется функция mainSwim.
+Для демонстрации многопоточности, создаётся отдельный поток. 
+
+При его выполнении (функция `doSwim`), создаётся ещё ряд дочерних потоков: 
+для каждого нового объекта (в нашем случае - спортсмена). 
+Сначала они собираются в единый вектор `threads`, 
+каждый поток которого вызывает функцию `doSwimLine`:
+
+```c++
+void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
+    vector<std::thread> threads(swimmersCount);
+
+    for (int i = 0; i < swimmersCount; ++i) {
+        // Альтернативные способы создания массива потоков:
+        threads.emplace_back(doSwimLine, swimmers[i], distance);
+        // threads.emplace_back([&swimmers, distance, i]() { swimmingLane(swimmers[i], distance); });
+    }
+
+    for (auto &thread : threads) { if (thread.joinable()) { thread.join(); } }
+}
+```
+
+Затем - все соседние потоки отрабатывают параллельно. 
+Это можно отследить, вызвав в каждой из функций `doSwimLine` код std::this_thread::get_id()
+
+В финале, после распечатывания отчета, все объекты кучи - удаляются.
 
 </details>
 </details>

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <thread>
 #include <chrono>
@@ -22,10 +23,12 @@ void sortSwimmers(vector<Swimmer*> &swimmers) {
 void printResults(const vector<Swimmer*> &swimmers) {
     asyncLock.lock();
     cout << " --- Winners table --- " << endl;
-    cout << "   time spent  :  id" << endl;
+    cout << "  time spent :   id" << endl;
 
     for (const auto &swimmer : swimmers) {
-        cout << "    " << swimmer->getTimeSpent() << "   :    " << swimmer->getId() << endl;
+        cout << std::setw(9) << std::setprecision(2) << swimmer->getTimeSpent();
+        cout << "    :    ";
+        cout << swimmer->getId() << endl;
     }
     asyncLock.unlock();
 }
@@ -42,7 +45,6 @@ void clearHeap(vector<Swimmer*> &swimmers) {
 }
 
 void doSwimLine(Swimmer* swimmer, double distance) {
-    cout << "LOG! Started thread #" << std::this_thread::get_id() << "\n";
     // Понадобится для вычисления текущей секунды
     int currentSecond = 0;
 
@@ -59,7 +61,7 @@ void doSwimLine(Swimmer* swimmer, double distance) {
             swimmer->setTimeSpent(distance);
             cout << "(" << currentSecond << ") Swimmer #" << swimmer->getId() << " reaches the finish line.\n";
         } else if (currentSecond) {
-            cout << "(" << currentSecond << ") Swimmer #" << swimmer->getId() << " has overcome " << position << ".\n";
+            cout << "(" << currentSecond << ") Swimmer #" << swimmer->getId() << " has overcome " << position << "\n";
         }
         asyncLock.unlock();
 
@@ -70,8 +72,6 @@ void doSwimLine(Swimmer* swimmer, double distance) {
 }
 
 void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
-    cout << "LOG! Started main thread #" << std::this_thread::get_id() << "\n";
-
     // Создаем шесть параллельных потоков:
     vector<std::thread> threads(swimmersCount);
 
@@ -81,6 +81,7 @@ void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
         // threads.emplace_back([&swimmers, distance, i]() { swimmingLane(swimmers[i], distance); });
     }
 
+    cout << "START!" << endl;
     // Потоки начинают выполняться параллельно
     for (auto &thread : threads) { if (thread.joinable()) { thread.join(); } }
 }
