@@ -51,4 +51,14 @@ void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
 В финале, после распечатывания отчета, все объекты кучи - удаляются.
 
 </details>
+
+<details>
+<summary><span style="color:tomato;font-size:12px">Полезные ссылки</span></summary>
+
+<p><a href="https://thispointer.com/c11-how-to-create-vector-of-thread-objects/" style="margin-left:16px"> How to create Vector of Thread Objects</a></p>
+
+<p><a href="https://stackoverflow.com/questions/30768216/c-stdvector-of-independent-stdthreads" style="margin-left:16px">std::vector of independent std::threads</a></p>
+
+</details>
+
 </details>
