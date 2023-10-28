@@ -49,6 +49,9 @@ void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
 Затем - все соседние потоки отрабатывают параллельно. 
 Это можно отследить, вызвав в каждой из функций `asyncCountdown` код std::this_thread::get_id()
 
+Чтобы заполнение/сортировка/удаление общего списка пловцов было корректным, используется 
+mutex `watchSwimmerList`.
+
 В финале, после распечатывания отчета, все объекты кучи - удаляются.
 
 </details>

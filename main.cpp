@@ -11,17 +11,17 @@ using std::cout;
 using std::endl;
 using std::vector;
 
-std::mutex asyncLock;
+std::mutex watchSwimmerList;
 
 void sortSwimmers(vector<Swimmer*> &swimmers) {
-    asyncLock.lock();
+    watchSwimmerList.lock();
     std::sort(swimmers.begin(), swimmers.end(),
               [](Swimmer* &prev, Swimmer* &next) { return prev->getTimeSpent() < next->getTimeSpent(); });
-    asyncLock.unlock();
+    watchSwimmerList.unlock();
 }
 
 void printResults(const vector<Swimmer*> &swimmers) {
-    asyncLock.lock();
+    watchSwimmerList.lock();
     cout << " --- Winners table --- " << endl;
     cout << "  time spent :   id" << endl;
 
@@ -30,18 +30,18 @@ void printResults(const vector<Swimmer*> &swimmers) {
         cout << "    :    ";
         cout << swimmer->getId() << endl;
     }
-    asyncLock.unlock();
+    watchSwimmerList.unlock();
 }
 
 void clearHeap(vector<Swimmer*> &swimmers) {
-    asyncLock.lock();
+    watchSwimmerList.lock();
     for (auto &swimmer : swimmers) {
         delete swimmer;
         swimmer = nullptr;
     }
 
     swimmers.clear();
-    asyncLock.unlock();
+    watchSwimmerList.unlock();
 }
 
 // Сделано лишь для демонстрации многопоточности
@@ -55,7 +55,7 @@ void asyncCountdown(Swimmer* swimmer, double distance) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
         // Обратим внимание: внутри mutex не выйти из цикла по break;
-        asyncLock.lock();
+        watchSwimmerList.lock();
         double position = swimmer->getSpeed() * currentSecond;
 
         if (position >= distance) {
@@ -65,7 +65,7 @@ void asyncCountdown(Swimmer* swimmer, double distance) {
         } else if (currentSecond) {
             cout << "(" << currentSecond << ") Swimmer #" << swimmer->getId() << " has overcome " << position << "\n";
         }
-        asyncLock.unlock();
+        watchSwimmerList.unlock();
 
         if (swimmer->hasFinish() > 0) { return; }
 
