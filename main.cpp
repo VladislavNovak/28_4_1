@@ -44,7 +44,9 @@ void clearHeap(vector<Swimmer*> &swimmers) {
     asyncLock.unlock();
 }
 
-void doSwimLine(Swimmer* swimmer, double distance) {
+// Сделано лишь для демонстрации многопоточности
+// Для каждой дорожки запускает индивидуальный таймер:
+void asyncCountdown(Swimmer* swimmer, double distance) {
     // Понадобится для вычисления текущей секунды
     int currentSecond = 0;
 
@@ -77,8 +79,8 @@ void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
 
     for (int i = 0; i < swimmersCount; ++i) {
         // Альтернативные способы создания массива потоков:
-        threads.emplace_back(doSwimLine, swimmers[i], distance);
-        // threads.emplace_back([&swimmers, distance, i]() { swimmingLane(swimmers[i], distance); });
+        threads.emplace_back(asyncCountdown, swimmers[i], distance);
+        // threads.emplace_back([&swimmers, distance, i]() { asyncCountdown(swimmers[i], distance); });
     }
 
     cout << "START!" << endl;

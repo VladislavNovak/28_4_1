@@ -21,15 +21,16 @@
 <details open>
 <summary><span style="color:tomato;font-size:12px">Пояснения</span></summary>
 
-Скорость пловцов заносится в тип double и находится в интервале между 2 - 3 метрами в секунду. 
-Это медианные значения для опытных пловцов на дальность 100м.
+Скорость пловцов измеряется метрами в секунду. 
+Поэтому заносится в тип double и находится в интервале 2 - 3. 
+В реальности - это медианные значения для опытных пловцов на дальность 100м.
 
 Для демонстрации многопоточности, создаётся отдельный поток. 
-
 При его выполнении (функция `doSwim`), создаётся ещё ряд дочерних потоков: 
 для каждого нового объекта (в нашем случае - спортсмена). 
+
 Сначала они собираются в единый вектор `threads`, 
-каждый поток которого вызывает функцию `doSwimLine`:
+каждый поток которого вызывает функцию `asyncCountdown`:
 
 ```c++
 void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
@@ -37,8 +38,8 @@ void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
 
     for (int i = 0; i < swimmersCount; ++i) {
         // Альтернативные способы создания массива потоков:
-        threads.emplace_back(doSwimLine, swimmers[i], distance);
-        // threads.emplace_back([&swimmers, distance, i]() { swimmingLane(swimmers[i], distance); });
+        threads.emplace_back(asyncCountdown, swimmers[i], distance);
+        // threads.emplace_back([&swimmers, distance, i]() { asyncCountdown(swimmers[i], distance); });
     }
 
     for (auto &thread : threads) { if (thread.joinable()) { thread.join(); } }
@@ -46,7 +47,7 @@ void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
 ```
 
 Затем - все соседние потоки отрабатывают параллельно. 
-Это можно отследить, вызвав в каждой из функций `doSwimLine` код std::this_thread::get_id()
+Это можно отследить, вызвав в каждой из функций `asyncCountdown` код std::this_thread::get_id()
 
 В финале, после распечатывания отчета, все объекты кучи - удаляются.
 
