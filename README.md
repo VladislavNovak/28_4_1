@@ -48,8 +48,6 @@ void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
         threads.emplace_back(asyncCountdown, swimmers[i], distance);
     }
 
-    // Будет постоянно работать, пока все спортсмены не достигнут финиша
-    // ВАЖНО: выполняется параллельно с потоками threads спортсменов. Зависит от них и влияет на каждый из них
     while (finisherCounter < swimmersCount) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
@@ -103,8 +101,7 @@ void asyncCountdown(Swimmer* swimmer, double distance) {
             ++finisherCounter;
         }
         watchSwimmerList.unlock();
-
-        // Если ранее был достигнут финиш, проверяем это и если true, то этот цикл завершаем
+        
         if (swimmer->hasFinish() > 0) { return; }
 
         ++currentSecond;
