@@ -11,6 +11,11 @@ using std::cout;
 using std::endl;
 using std::vector;
 
+// Счетчик спортсменов, которые достигли финиша
+int finisherCounter = 0;
+// Флаг о достижении всеми спортсменами финиша
+bool isFinish = false;
+
 std::mutex watchSwimmerList;
 
 void sortSwimmers(vector<Swimmer*> &swimmers) {
@@ -23,10 +28,10 @@ void sortSwimmers(vector<Swimmer*> &swimmers) {
 void printResults(const vector<Swimmer*> &swimmers) {
     watchSwimmerList.lock();
     cout << " --- Winners table --- " << endl;
-    cout << "  time spent :   id" << endl;
+    cout << "   reached   :   id" << endl;
 
     for (const auto &swimmer : swimmers) {
-        cout << std::setw(9) << std::setprecision(2) << swimmer->getTimeSpent();
+        cout << std::setw(9) << std::setprecision(3) << swimmer->getTimeSpent();
         cout << "    :    ";
         cout << swimmer->getId() << endl;
     }
@@ -47,26 +52,29 @@ void clearHeap(vector<Swimmer*> &swimmers) {
 // Сделано лишь для демонстрации многопоточности
 // Для каждой дорожки запускает индивидуальный таймер:
 void asyncCountdown(Swimmer* swimmer, double distance) {
-    // Понадобится для вычисления текущей секунды
+    // Понадобится для отображения текущей секунды и вычисления положения спортсмена на дистанции
     int currentSecond = 0;
 
-    // Можно просто true, но для безопасности ограничим кол. секунд которое необходимо для преодоления дистанции
-    while (currentSecond < (distance / 1.9)) {
+    while (!isFinish) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
         // Обратим внимание: внутри mutex не выйти из цикла по break;
         watchSwimmerList.lock();
         double position = swimmer->getSpeed() * currentSecond;
 
+        // Если достигнут финиш, то:
         if (position >= distance) {
-            // Установим затраченное спортсменом время на преодоление дистанции
-            swimmer->setTimeSpent(distance);
             cout << "(" << currentSecond << ") Swimmer #" << swimmer->getId() << " reaches the finish line.\n";
+            // Установим затраченное спортсменом время на преодоление дистанции
+            swimmer->setTimeSpent(distance / swimmer->getSpeed());
+
+            ++finisherCounter;
         } else if (currentSecond) {
             cout << "(" << currentSecond << ") Swimmer #" << swimmer->getId() << " has overcome " << position << "\n";
         }
         watchSwimmerList.unlock();
 
+        // Если ранее был достигнут финиш, проверяем это и если true, то этот цикл завершаем
         if (swimmer->hasFinish() > 0) { return; }
 
         ++currentSecond;
@@ -84,7 +92,16 @@ void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
     }
 
     cout << "START!" << endl;
-    // Потоки начинают выполняться параллельно
+
+    // Будет постоянно работать, пока все спортсмены не достигнут финиша
+    // ВАЖНО: выполняется параллельно с потоками threads спортсменов. Зависит от них и влияет на каждый из них
+    while (finisherCounter < swimmersCount) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    // Если все спортсмены достигли финиша:
+    isFinish = true;
+
     for (auto &thread : threads) { if (thread.joinable()) { thread.join(); } }
 }
 

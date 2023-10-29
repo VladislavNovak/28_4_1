@@ -19,40 +19,115 @@
 </details>
 
 <details open>
-<summary><span style="color:tomato;font-size:12px">Пояснения</span></summary>
+<summary><span style="color:tomato;font-size:12px">Выполнение программы:</span></summary>
+
+<details>
+<summary><span style="color:sienna;font-size:12px">Общая информация:</span></summary>
 
 Скорость пловцов измеряется метрами в секунду. 
 Поэтому заносится в тип double и находится в интервале 2 - 3. 
 В реальности - это медианные значения для опытных пловцов на дальность 100м.
 
-Для демонстрации многопоточности, создаётся отдельный поток. 
-При его выполнении (функция `doSwim`), создаётся ещё ряд дочерних потоков: 
+</details>
+
+<details open>
+<summary><span style="color:sienna;font-size:12px">Основа:</span></summary>
+
+Для демонстрации многопоточности, создаётся отдельный поток `std::thread threadMain`.
+Внутри него (функция `doSwim`), создаётся ещё ряд дочерних потоков: 
 для каждого нового объекта (в нашем случае - спортсмена). 
 
-Сначала они собираются в единый вектор `threads`, 
-каждый поток которого вызывает функцию `asyncCountdown`:
+Сначала они собираются в единый вектор `threads`. 
+Затем каждый из потоков вызывает функцию `asyncCountdown`.
 
 ```c++
 void doSwim(vector<Swimmer*> swimmers, double distance, int swimmersCount) {
     vector<std::thread> threads(swimmersCount);
 
     for (int i = 0; i < swimmersCount; ++i) {
-        // Альтернативные способы создания массива потоков:
         threads.emplace_back(asyncCountdown, swimmers[i], distance);
-        // threads.emplace_back([&swimmers, distance, i]() { asyncCountdown(swimmers[i], distance); });
     }
 
+    // Будет постоянно работать, пока все спортсмены не достигнут финиша
+    // ВАЖНО: выполняется параллельно с потоками threads спортсменов. Зависит от них и влияет на каждый из них
+    while (finisherCounter < swimmersCount) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    // Если все спортсмены достигли финиша:
+    isFinish = true;
+    
     for (auto &thread : threads) { if (thread.joinable()) { thread.join(); } }
 }
 ```
 
-Затем - все соседние потоки отрабатывают параллельно. 
-Это можно отследить, вызвав в каждой из функций `asyncCountdown` код std::this_thread::get_id()
+На что нужно обратить внимание:
 
-Чтобы заполнение/сортировка/удаление общего списка пловцов было корректным, используется 
-mutex `watchSwimmerList`.
+- Создаётся несколько параллельных потоков. Кстати, привязать callback к каждому из них можно и
+альтернативным равнозначным способом:
+
+```c++
+// 1 вариант:
+threads.emplace_back(asyncCountdown, swimmers[i], distance);
+// 2 вариант:
+threads.emplace_back([&swimmers, distance, i]() { asyncCountdown(swimmers[i], distance); });
+```
+
+- Параллельно запускается и основной процесс. Т.е. цикл `while (finisherCounter < swimmersCount)`.  
+Важно то, что он выполняется параллельно с вышеобозначенными потоками. 
+И важно то, что в параллельных потоках переменная `finisherCounter` будет меняться гарантированно увеличиваясь. 
+Это позволит, в итоге, завершить цикл и поменять переменную `isFinish`, 
+которая остановит и параллельные основному потоки:
+
+```c++
+while (finisherCounter < swimmersCount) {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+```
+
+Далее. В каждом из параллельных потоков выполняется `asyncCountdown`:
+
+```c++
+void asyncCountdown(Swimmer* swimmer, double distance) {
+    int currentSecond = 0;
+
+    while (!isFinish) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        watchSwimmerList.lock();
+        double position = swimmer->getSpeed() * currentSecond;
+
+        // Если достигнут финиш, то:
+        if (position >= distance) {
+            swimmer->setTimeSpent(distance / swimmer->getSpeed());            
+            ++finisherCounter;
+        }
+        watchSwimmerList.unlock();
+
+        // Если ранее был достигнут финиш, проверяем это и если true, то этот цикл завершаем
+        if (swimmer->hasFinish() > 0) { return; }
+
+        ++currentSecond;
+    }
+}
+```
+
+Здесь условием работы цикла мог быть и простой true.
+При этом выход из него обеспечивался всё тем же условием `if (swimmer->hasFinish() > 0) { return; }`.
+
+Однако в программе хотелось показать, 
+что цикл здесь выполняется до тех пор, пока не поменяется, в том числе, переменная `isFinish`. 
+Это произойдет лишь тогда, когда в каждом (!!!) из циклов спортсмен достигнет финиша и
+тогда изменится переменная `finisherCounter`. 
+
+Тогда в основном потоке прекратится выполнение цикла `while (finisherCounter < swimmersCount)`, 
+что, в свою очередь, приведёт к `isFinish = true`.
+
+Чтобы заполнение/сортировка/удаление общего списка пловцов было корректным, используется mutex `watchSwimmerList`.
 
 В финале, после распечатывания отчета, все объекты кучи - удаляются.
+
+</details>
 
 </details>
 

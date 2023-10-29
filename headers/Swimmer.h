@@ -10,7 +10,7 @@ class Swimmer {
 public:
     explicit Swimmer(int inId, double inSpeed);
 
-    void setTimeSpent(double distance);
+    void setTimeSpent(double inTimeSpent);
 
     [[nodiscard]] int getId() const;
 

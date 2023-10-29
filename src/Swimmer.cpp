@@ -2,7 +2,7 @@
 
 Swimmer::Swimmer(int inId, double inSpeed) { id = inId, mPerSec = inSpeed; }
 
-void Swimmer::setTimeSpent(double distance) { timeSpent = distance / this->mPerSec; }
+void Swimmer::setTimeSpent(double inTimeSpent) { timeSpent = inTimeSpent; }
 
 [[nodiscard]] int Swimmer::getId() const { return id; }
 
